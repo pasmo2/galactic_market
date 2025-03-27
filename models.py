@@ -15,10 +15,12 @@ class User(db.Model):
     permissions = db.Column(db.ARRAY(db.String))
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.now())
 
+
 class GalacticObjectType(db.Model):
     __tablename__ = 'galactic_object_types'
     uuid = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = db.Column(db.String, nullable=False)
+
 
 class GalacticObject(db.Model):
     __tablename__ = 'galactic_objects'
@@ -31,6 +33,7 @@ class GalacticObject(db.Model):
     discovered_at = db.Column(db.TIMESTAMP)
     owner_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.uuid'))
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.now())
+    demands = db.relationship('Demand', backref='galactic_object', lazy=True)
 
 class Certificate(db.Model):
     __tablename__ = 'certificates'
@@ -41,6 +44,7 @@ class Certificate(db.Model):
     valid_until = db.Column(db.TIMESTAMP)
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.now())
     updated_at = db.Column(db.TIMESTAMP, onupdate=db.func.now())
+
 
 class Demand(db.Model):
     __tablename__ = 'demands'
