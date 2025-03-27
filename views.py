@@ -277,3 +277,17 @@ def confirm_demand(demand_id):
         "object_id": str(galactic_object.uuid)
     }), 200
 
+
+@demand_bp.route('/demands/<uuid:demand_id>', methods=['DELETE'])
+def delete_demand(demand_id):
+    demand = Demand.query.get(demand_id)
+    if not demand:
+        return jsonify({"error": "Demand not found"}), 404
+
+    db.session.delete(demand)
+    try:
+        db.session.commit()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    return jsonify({"message": "Demand deleted"}), 204
