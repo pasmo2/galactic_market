@@ -1,17 +1,41 @@
 version: '3.8'
 services:
-  app:
-    build: .
+  user_service:
+    build: ./user_service
     volumes:
-      - .:/app
+      - ./user_service:/app
     ports:
-      - "5001:5001"
+      - "5001:5000"
     environment:
-      FLASK_APP: app.py
+      FLASK_APP: "app"
       FLASK_ENV: development
-      FLASK_RUN_HOST: 0.0.0.0
-    depends_on:
-      - db
+      DATABASE_URL: postgresql://user:password@db/mydatabase
+    command: flask run --host=0.0.0.0
+
+  object_service:
+    build: ./object_service
+    volumes:
+      - ./object_service:/app
+    ports:
+      - "5002:5000"
+    environment:
+      FLASK_APP: "app"
+      FLASK_ENV: development
+      DATABASE_URL: postgresql://user:password@db/mydatabase
+    command: flask run --host=0.0.0.0
+
+  demand_service:
+    build: ./demand_service
+    volumes:
+      - ./demand_service:/app
+    ports:
+      - "5003:5000"
+    environment:
+      FLASK_APP: "app"
+      FLASK_ENV: development
+      DATABASE_URL: postgresql://user:password@db/mydatabase
+    command: flask run --host=0.0.0.0
+
   db:
     image: postgres
     ports:
