@@ -7,10 +7,8 @@ services:
     ports:
       - "5001:5000"
     environment:
-      FLASK_APP: "app"
-      FLASK_ENV: development
       DATABASE_URL: postgresql://user:password@db/mydatabase
-    command: flask run --host=0.0.0.0
+    command: python app/app.py
 
   object_service:
     build: ./object_service
@@ -19,10 +17,8 @@ services:
     ports:
       - "5002:5000"
     environment:
-      FLASK_APP: "app"
-      FLASK_ENV: development
       DATABASE_URL: postgresql://user:password@db/mydatabase
-    command: flask run --host=0.0.0.0
+    command: python app/app.py
 
   demand_service:
     build: ./demand_service
@@ -31,10 +27,8 @@ services:
     ports:
       - "5003:5000"
     environment:
-      FLASK_APP: "app"
-      FLASK_ENV: development
       DATABASE_URL: postgresql://user:password@db/mydatabase
-    command: flask run --host=0.0.0.0
+    command: python app/app.py
 
   db:
     image: postgres
