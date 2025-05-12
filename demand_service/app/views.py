@@ -75,13 +75,13 @@ def confirm_demand(uuid):
     
     try:
         # Update demand status
-        demand.status = 'confirmed'
+        demand.status = 'accepted'
         db.session.commit()
         
         return jsonify({
             "uuid": str(demand.uuid),
             "status": demand.status,
-            "message": "Demand confirmed successfully"
+            "message": "Demand accepted successfully"
         }), 200
         
     except Exception as e:
