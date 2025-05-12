@@ -13,7 +13,17 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app)
+# Configure CORS
+CORS(app, resources={
+    r"/*": {  # Allow all routes
+        "origins": ["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:5173", "http://127.0.0.1:3000"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization", "Accept"],
+        "expose_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True,
+        "max_age": 3600
+    }
+})
 
 # Service URLs from environment variables
 USER_SERVICE_URL = os.environ.get('USER_SERVICE_URL', 'http://user_service:5000')
@@ -64,46 +74,56 @@ def forward_request(service_url, path='', **kwargs):
         }), 503
 
 # User Service Routes
-@app.route('/api/users', methods=['GET', 'POST'])
+@app.route('/users', methods=['GET', 'POST'])
 def proxy_users():
     return forward_request(USER_SERVICE_URL, 'users')
 
-@app.route('/api/users/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@app.route('/users/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def proxy_user_path(path):
     return forward_request(USER_SERVICE_URL, f'users/{path}')
 
-@app.route('/api/login', methods=['POST'])
+@app.route('/login', methods=['POST', 'OPTIONS'])
 def proxy_login():
+    if request.method == 'OPTIONS':
+        return '', 204
     return forward_request(USER_SERVICE_URL, 'login')
 
 # Galactic Object Service Routes
-@app.route('/api/galactic_objects', methods=['GET', 'POST'])
+@app.route('/galactic_objects', methods=['GET', 'POST'])
 def proxy_objects():
     return forward_request(OBJECT_SERVICE_URL, 'galactic_objects')
 
-@app.route('/api/galactic_objects/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@app.route('/galactic_objects/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def proxy_object_path(path):
     return forward_request(OBJECT_SERVICE_URL, f'galactic_objects/{path}')
 
-@app.route('/api/galactic_objects_search', methods=['GET'])
+@app.route('/galactic_objects_search', methods=['GET'])
 def proxy_objects_search():
     return forward_request(OBJECT_SERVICE_URL, 'galactic_objects_search')
 
-@app.route('/api/add_galactic_objects', methods=['POST'])
+@app.route('/add_galactic_objects', methods=['POST'])
 def proxy_add_objects():
     return forward_request(OBJECT_SERVICE_URL, 'add_galactic_objects')
 
+@app.route('/galactic_object_types', methods=['GET'])
+def proxy_object_types():
+    return forward_request(OBJECT_SERVICE_URL, 'galactic_object_types')
+
+@app.route('/galactic_object_types/<path:path>', methods=['GET'])
+def proxy_object_type_path(path):
+    return forward_request(OBJECT_SERVICE_URL, f'galactic_object_types/{path}')
+
 # Demand Service Routes
-@app.route('/api/demands', methods=['GET', 'POST'])
+@app.route('/demands', methods=['GET', 'POST'])
 def proxy_demands():
     return forward_request(DEMAND_SERVICE_URL, 'demands')
 
-@app.route('/api/demands/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@app.route('/demands/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def proxy_demand_path(path):
     return forward_request(DEMAND_SERVICE_URL, f'demands/{path}')
 
 # Health Check Endpoint
-@app.route('/api/health', methods=['GET'])
+@app.route('/health', methods=['GET'])
 def health_check():
     health = {
         "status": "up",

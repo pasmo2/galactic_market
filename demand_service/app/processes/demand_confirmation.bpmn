@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <bpmn:process id="galactic_market_demand" name="Galactic Market Demand Process" isExecutable="true" camunda:historyTimeToLive="30">
+    <bpmn:startEvent id="StartEvent_1" name="Demand Created">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Activity_ValidateDemand" />
+
+    <bpmn:serviceTask id="Activity_ValidateDemand" name="Validate Demand"
+                     camunda:type="external"
+                     camunda:topic="validate_demand">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Activity_ValidateDemand" targetRef="Activity_CheckObjectAvailability" />
+
+    <bpmn:serviceTask id="Activity_CheckObjectAvailability" name="Check Object Availability"
+                     camunda:type="external"
+                     camunda:topic="check_object_availability">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Activity_CheckObjectAvailability" targetRef="Activity_CheckUserBalance" />
+
+    <bpmn:serviceTask id="Activity_CheckUserBalance" name="Check User Balance"
+                     camunda:type="external"
+                     camunda:topic="check_user_balance">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Activity_CheckUserBalance" targetRef="Activity_ConfirmTransaction" />
+
+    <bpmn:userTask id="Activity_ConfirmTransaction" name="Confirm Transaction"
+                  camunda:assignee="${userId}"
+                  camunda:formKey="demand-confirmation-form">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Activity_ConfirmTransaction" targetRef="Activity_UpdateOwnership" />
+
+    <bpmn:serviceTask id="Activity_UpdateOwnership" name="Update Ownership"
+                     camunda:type="external"
+                     camunda:topic="update_ownership">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Activity_UpdateOwnership" targetRef="Event_End" />
+
+    <bpmn:endEvent id="Event_End" name="Demand Completed">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="galactic_market_demand">
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="188" y="240" />
+        <di:waypoint x="242" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="342" y="240" />
+        <di:waypoint x="442" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="542" y="240" />
+        <di:waypoint x="642" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="742" y="240" />
+        <di:waypoint x="842" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="942" y="240" />
+        <di:waypoint x="1042" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="1142" y="240" />
+        <di:waypoint x="1192" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="222" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_ValidateDemand_di" bpmnElement="Activity_ValidateDemand">
+        <dc:Bounds x="242" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_CheckObjectAvailability_di" bpmnElement="Activity_CheckObjectAvailability">
+        <dc:Bounds x="442" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_CheckUserBalance_di" bpmnElement="Activity_CheckUserBalance">
+        <dc:Bounds x="642" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_ConfirmTransaction_di" bpmnElement="Activity_ConfirmTransaction">
+        <dc:Bounds x="842" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_UpdateOwnership_di" bpmnElement="Activity_UpdateOwnership">
+        <dc:Bounds x="1042" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_End_di" bpmnElement="Event_End">
+        <dc:Bounds x="1192" y="222" width="36" height="36" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions> 

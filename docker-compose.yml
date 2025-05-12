@@ -10,11 +10,13 @@ services:
       - user_service
       - object_service
       - demand_service
+      - camunda
     environment:
       - GATEWAY_PORT=8000
       - USER_SERVICE_URL=http://user_service:5000
       - OBJECT_SERVICE_URL=http://object_service:5000
       - DEMAND_SERVICE_URL=http://demand_service:5000
+      - CAMUNDA_URL=http://camunda:8080
     env_file:
       - .env
 
@@ -50,12 +52,28 @@ services:
       - "5003:5000"
     environment:
       DATABASE_URL: postgresql://user:password@db/mydatabase
-    command: python app/app.py
+      CAMUNDA_URL: http://camunda:8080
+      PYTHONPATH: /app
+    command: python -m app.app
+    depends_on:
+      - db
+      - camunda
+
+  camunda:
+    image: camunda/camunda-bpm-platform:run-latest
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_DRIVER=org.postgresql.Driver
+      - DB_URL=jdbc:postgresql://db:5432/mydatabase
+      - DB_USERNAME=user
+      - DB_PASSWORD=password
+      - WAIT_FOR=db:5432
     depends_on:
       - db
 
   db:
-    image: postgres
+    image: postgres:13
     ports:
       - "5432:5432"
     environment:

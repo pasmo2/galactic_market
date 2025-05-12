@@ -5,6 +5,14 @@ from uuid import uuid4
 
 galactic_objects_bp = Blueprint('galactic_objects', __name__)
 
+@galactic_objects_bp.route('/galactic_object_types', methods=['GET'])
+def get_galactic_object_types():
+    types = GalacticObjectType.query.all()
+    return jsonify([{
+        "uuid": str(type.uuid),
+        "name": type.name
+    } for type in types]), 200
+
 @galactic_objects_bp.route('/galactic_objects', methods=['GET'])
 def get_galactic_objects():
     objects = GalacticObject.query.all()
