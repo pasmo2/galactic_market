@@ -3,3 +3,4 @@ SQLAlchemy
 Flask-Migrate
 psycopg2-binary
 flask-cors
+requests

@@ -43,8 +43,18 @@
     <bpmn:sequenceFlow id="Flow_4" sourceRef="Activity_CheckUserBalance" targetRef="Activity_ConfirmTransaction" />
 
     <bpmn:userTask id="Activity_ConfirmTransaction" name="Confirm Transaction"
-                  camunda:assignee="${userId}"
-                  camunda:formKey="demand-confirmation-form">
+                  camunda:assignee="demo">
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="confirmed" label="Confirm Transaction" type="boolean">
+            <camunda:validation>
+              <camunda:constraint name="required" />
+            </camunda:validation>
+          </camunda:formField>
+          <camunda:formField id="notes" label="Transaction Notes" type="string">
+          </camunda:formField>
+        </camunda:formData>
+      </bpmn:extensionElements>
       <bpmn:incoming>Flow_4</bpmn:incoming>
       <bpmn:outgoing>Flow_5</bpmn:outgoing>
     </bpmn:userTask>

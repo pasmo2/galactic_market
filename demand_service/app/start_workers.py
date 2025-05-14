@@ -1,5 +1,5 @@
 import threading
-from task_workers import (
+from app.task_workers import (
     validate_demand_worker,
     check_object_availability_worker,
     check_user_balance_worker,

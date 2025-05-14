@@ -29,7 +29,7 @@ def get_galactic_objects():
     } for obj in objects]), 200
 
 @galactic_objects_bp.route('/galactic_objects_search', methods=['GET'])
-def create_galactic_object():
+def get_galactic_object_search():
     name_query = request.args.get('name')
 
     query = GalacticObject.query
