@@ -1,17 +1,10 @@
 from flask import jsonify, request, Blueprint
 from .models import db, Demand
 from .camunda_client import CamundaClient
-from .kafka_utils import KafkaProducer
 from uuid import uuid4
-import logging
 
-logger = logging.getLogger(__name__)
 demands_bp = Blueprint('demands', __name__)
 camunda = CamundaClient()
-kafka_producer = KafkaProducer()
-
-# Define Kafka topics
-DEMAND_EVENTS_TOPIC = 'demand-events'
 
 @demands_bp.route('/demands', methods=['GET'])
 def get_demands():
@@ -57,24 +50,6 @@ def create_demand():
             price=price_eur
         )
         
-        # Publish demand created event to Kafka
-        demand_data = {
-            "uuid": str(new_demand.uuid),
-            "user_id": str(new_demand.user_id),
-            "galactic_object_id": str(new_demand.galactic_object_id),
-            "price_eur": new_demand.price_eur,
-            "status": new_demand.status,
-            "created_at": str(new_demand.created_at)
-        }
-        
-        kafka_producer.publish_event(
-            topic=DEMAND_EVENTS_TOPIC,
-            event_type='demand_created',
-            data=demand_data
-        )
-        
-        logger.info(f"Demand created and event published: {str(new_demand.uuid)}")
-        
         return jsonify({
             "uuid": str(new_demand.uuid),
             "user_id": str(new_demand.user_id),
@@ -103,18 +78,6 @@ def confirm_demand(uuid):
         demand.status = 'accepted'
         db.session.commit()
         
-        # Publish demand confirmed event to Kafka
-        kafka_producer.publish_event(
-            topic=DEMAND_EVENTS_TOPIC,
-            event_type='demand_confirmed',
-            data={
-                "uuid": str(demand.uuid),
-                "user_id": str(demand.user_id),
-                "galactic_object_id": str(demand.galactic_object_id),
-                "status": demand.status
-            }
-        )
-        
         return jsonify({
             "uuid": str(demand.uuid),
             "status": demand.status,
@@ -132,23 +95,8 @@ def delete_demand(uuid):
         return jsonify({"error": "Demand not found"}), 404
     
     try:
-        # Store demand info before deletion
-        demand_data = {
-            "uuid": str(demand.uuid),
-            "user_id": str(demand.user_id),
-            "galactic_object_id": str(demand.galactic_object_id)
-        }
-        
         db.session.delete(demand)
         db.session.commit()
-        
-        # Publish demand deleted event to Kafka
-        kafka_producer.publish_event(
-            topic=DEMAND_EVENTS_TOPIC,
-            event_type='demand_deleted',
-            data=demand_data
-        )
-        
         return '', 204
     except Exception as e:
         db.session.rollback()
