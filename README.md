@@ -36,22 +36,15 @@ Object Service: http://localhost:5002
 Demand Service: http://localhost:5003
 ```
 
-## API Endpoints
+## how to run the kafka+camunda part:
+### get our docker setup running
+docker-compose up --build
+### start our camunda worker
+docker-compose exec demand_service python -m app.start_workers
+### start our kafka message viewer
+python kafka_message_viewer.py
+#### create a demand to fire the camunda process
+curl -X POST -H "Content-Type: application/json" -d '{"user_id": "99c4735c-8a55-4a74-980f-b5e2c34494bd", "galactic_object_id": "973363d7-9799-45a4-9a77-e9b7adbdc6d5", "price_eur": 7000}' http://localhost:8000/demands
 
-### User Service
-- GET/POST /api/users - Manage users
-- POST /api/login - User authentication
 
-### Object Service
-- GET/POST /api/galactic_objects - Manage galactic objects
-- GET /api/galactic_objects_search - Search for objects
-- POST /api/add_galactic_objects - Add new objects
-- GET /api/galactic_objects/owned_by/{user_id} - Get user's objects
-
-### Demand Service
-- GET/POST /api/demands - Manage demand requests
-- POST /api/demands/{uuid}/confirm - Confirm a purchase
-- DELETE /api/demands/{uuid} - Delete a demand
-
-### System
-- GET /api/health - Check system health 
+observe!

@@ -1,10 +1,12 @@
 from flask import jsonify, request, Blueprint
 from .models import db, Demand
 from .camunda_client import CamundaClient
+from .kafka_client import KafkaClient
 from uuid import uuid4
 
 demands_bp = Blueprint('demands', __name__)
 camunda = CamundaClient()
+kafka_client = KafkaClient()
 
 @demands_bp.route('/demands', methods=['GET'])
 def get_demands():
@@ -42,13 +44,34 @@ def create_demand():
     try:
         db.session.commit()
         
-        # Start Camunda process
-        process_instance = camunda.start_demand_process(
-            demand_id=str(new_demand.uuid),
-            user_id=user_id,
-            object_id=galactic_object_id,
-            price=price_eur
-        )
+        # Publish to Kafka
+        demand_data = {
+            "demand_id": str(new_demand.uuid),
+            "user_id": user_id,
+            "galactic_object_id": galactic_object_id,
+            "price_eur": price_eur,
+            "action": "create_demand"
+        }
+        
+        kafka_result = kafka_client.publish_demand_request(demand_data)
+        
+        if not kafka_result:
+            # Fall back to direct Camunda API if Kafka fails
+            process_instance = camunda.start_demand_process(
+                demand_id=str(new_demand.uuid),
+                user_id=user_id,
+                object_id=galactic_object_id,
+                price=price_eur
+            )
+            process_instance_id = process_instance.get('id')
+        else:
+            # Update status to indicate it's been sent to Kafka
+            kafka_client.publish_demand_status(
+                str(new_demand.uuid), 
+                "submitted_to_kafka",
+                {"message": "Demand request sent to processing queue"}
+            )
+            process_instance_id = None
         
         return jsonify({
             "uuid": str(new_demand.uuid),
@@ -57,7 +80,8 @@ def create_demand():
             "price_eur": new_demand.price_eur,
             "status": new_demand.status,
             "created_at": new_demand.created_at,
-            "process_instance_id": process_instance.get('id')
+            "process_instance_id": process_instance_id,
+            "kafka_published": kafka_result
         }), 201
         
     except Exception as e:
