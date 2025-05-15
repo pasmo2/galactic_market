@@ -2,7 +2,9 @@ from flask import jsonify, request, Blueprint
 from .models import db, Demand
 from .camunda_client import CamundaClient
 from .kafka_client import KafkaClient
-from uuid import uuid4
+from uuid import uuid4, UUID
+import requests
+
 
 demands_bp = Blueprint('demands', __name__)
 camunda = CamundaClient()
@@ -10,7 +12,14 @@ kafka_client = KafkaClient()
 
 @demands_bp.route('/demands', methods=['GET'])
 def get_demands():
-    demands = Demand.query.all()
+    user_id = request.args.get('user_id')
+    query = Demand.query
+    if user_id:
+        try:
+            query = query.filter_by(user_id=UUID(user_id))
+        except Exception:
+            return jsonify([]), 200
+    demands = query.all()
     demands_list = [{
         "uuid": str(demand.uuid),
         "user_id": str(demand.user_id),
@@ -98,14 +107,36 @@ def confirm_demand(uuid):
         return jsonify({"error": "Demand is not in pending status"}), 400
     
     try:
-        # Update demand status
-        demand.status = 'accepted'
+        # Zisti, či ide o potvrdenie alebo odmietnutie (napr. podľa payloadu, default je potvrdenie)
+        data = request.get_json(silent=True) or {}
+        accepted = data.get('accepted', True)
+        demand.status = 'accepted' if accepted else 'rejected'
         db.session.commit()
+        
+        # Dokonči všetky user tasky v Camunde (pre istotu)
+        camunda_url = camunda.base_url
+        resp = requests.get(f"{camunda_url}/engine-rest/task")
+        if resp.status_code == 200:
+            for task in resp.json():
+                task_id = task.get('id')
+                if task_id:
+                    try:
+                        camunda.complete_task(task_id, {"offerAccepted": {"value": accepted, "type": "Boolean"}})
+                    except Exception:
+                        pass
+
+        # Vymaž všetky procesné inštancie (pre demo)
+        resp = requests.get(f"{camunda_url}/engine-rest/process-instance")
+        if resp.status_code == 200:
+            for instance in resp.json():
+                instance_id = instance.get('id')
+                if instance_id:
+                    requests.delete(f"{camunda_url}/engine-rest/process-instance/{instance_id}")
         
         return jsonify({
             "uuid": str(demand.uuid),
             "status": demand.status,
-            "message": "Demand accepted successfully"
+            "message": f"Demand {'accepted' if accepted else 'rejected'} successfully (all user tasks completed and all processes deleted for demo)"
         }), 200
         
     except Exception as e:

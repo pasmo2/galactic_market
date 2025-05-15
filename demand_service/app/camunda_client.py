@@ -71,4 +71,14 @@ class CamundaClient:
         )
         
         if response.status_code != 204:
-            raise Exception(f"Failed to claim task: {response.text}") 
+            raise Exception(f"Failed to claim task: {response.text}")
+
+    def get_user_task_by_demand_id(self, demand_id: str):
+        """Get the active user task for a given demand_id (process variable)"""
+        url = f"{self.base_url}/engine-rest/task"
+        params = {"processVariables": f"demandId_eq_{demand_id}"}
+        response = requests.get(url, params=params)
+        if response.status_code != 200:
+            raise Exception(f"Failed to get user task: {response.text}")
+        tasks = response.json()
+        return tasks 

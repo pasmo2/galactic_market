@@ -8,120 +8,169 @@
                   id="Definitions_1"
                   targetNamespace="http://bpmn.io/schema/bpmn">
 
-  <bpmn:process id="galactic_market_demand" name="Galactic Market Demand Process" isExecutable="true" camunda:historyTimeToLive="30">
-    <bpmn:startEvent id="StartEvent_1" name="Demand Created">
-      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+  <bpmn:process id="galactic_market_demand" name="Galaktický Trh - Proces Dopytu" isExecutable="true" camunda:historyTimeToLive="30">
+    <bpmn:startEvent id="StartEvent_CreateDemand" name="vytvorenie dopytu na kúpu objektu">
+      <bpmn:outgoing>Flow_CheckAvailability</bpmn:outgoing>
     </bpmn:startEvent>
 
-    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Activity_ValidateDemand" />
+    <bpmn:scriptTask id="ServiceTask_CheckAvailability" name="kontrola dostupnosti objektu" scriptFormat="groovy">
+      <bpmn:incoming>Flow_CheckAvailability</bpmn:incoming>
+      <bpmn:outgoing>Flow_Gateway_Available</bpmn:outgoing>
+      <bpmn:script>execution.setVariable('isAvailable', true)</bpmn:script>
+    </bpmn:scriptTask>
 
-    <bpmn:serviceTask id="Activity_ValidateDemand" name="Validate Demand"
-                     camunda:type="external"
-                     camunda:topic="validate_demand">
-      <bpmn:incoming>Flow_1</bpmn:incoming>
-      <bpmn:outgoing>Flow_2</bpmn:outgoing>
-    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gateway_Available" name="je objekt dostupný?">
+      <bpmn:incoming>Flow_Gateway_Available</bpmn:incoming>
+      <bpmn:outgoing>Flow_Available_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Available_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
 
-    <bpmn:sequenceFlow id="Flow_2" sourceRef="Activity_ValidateDemand" targetRef="Activity_CheckObjectAvailability" />
+    <bpmn:scriptTask id="ServiceTask_CreateDemand" name="vytvorenie dopytu" scriptFormat="groovy">
+      <bpmn:incoming>Flow_Available_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_UserTask_Decision</bpmn:outgoing>
+      <bpmn:script>execution.setVariable('ownerId', 'test_owner')</bpmn:script>
+    </bpmn:scriptTask>
 
-    <bpmn:serviceTask id="Activity_CheckObjectAvailability" name="Check Object Availability"
-                     camunda:type="external"
-                     camunda:topic="check_object_availability">
-      <bpmn:incoming>Flow_2</bpmn:incoming>
-      <bpmn:outgoing>Flow_3</bpmn:outgoing>
-    </bpmn:serviceTask>
-
-    <bpmn:sequenceFlow id="Flow_3" sourceRef="Activity_CheckObjectAvailability" targetRef="Activity_CheckUserBalance" />
-
-    <bpmn:serviceTask id="Activity_CheckUserBalance" name="Check User Balance"
-                     camunda:type="external"
-                     camunda:topic="check_user_balance">
-      <bpmn:incoming>Flow_3</bpmn:incoming>
-      <bpmn:outgoing>Flow_4</bpmn:outgoing>
-    </bpmn:serviceTask>
-
-    <bpmn:sequenceFlow id="Flow_4" sourceRef="Activity_CheckUserBalance" targetRef="Activity_ConfirmTransaction" />
-
-    <bpmn:userTask id="Activity_ConfirmTransaction" name="Confirm Transaction"
-                  camunda:assignee="demo">
-      <bpmn:extensionElements>
-        <camunda:formData>
-          <camunda:formField id="confirmed" label="Confirm Transaction" type="boolean">
-            <camunda:validation>
-              <camunda:constraint name="required" />
-            </camunda:validation>
-          </camunda:formField>
-          <camunda:formField id="notes" label="Transaction Notes" type="string">
-          </camunda:formField>
-        </camunda:formData>
-      </bpmn:extensionElements>
-      <bpmn:incoming>Flow_4</bpmn:incoming>
-      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    <bpmn:userTask id="UserTask_OwnerDecision" name="rozhodnutie vlastníka objektu" camunda:assignee="${ownerId}">
+      <bpmn:incoming>Flow_UserTask_Decision</bpmn:incoming>
+      <bpmn:outgoing>Flow_Gateway_OfferAccepted</bpmn:outgoing>
     </bpmn:userTask>
 
-    <bpmn:sequenceFlow id="Flow_5" sourceRef="Activity_ConfirmTransaction" targetRef="Activity_UpdateOwnership" />
+    <bpmn:exclusiveGateway id="Gateway_OfferAccepted" name="prijatá ponuka?">
+      <bpmn:incoming>Flow_Gateway_OfferAccepted</bpmn:incoming>
+      <bpmn:outgoing>Flow_OfferAccepted_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_OfferAccepted_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
 
-    <bpmn:serviceTask id="Activity_UpdateOwnership" name="Update Ownership"
-                     camunda:type="external"
-                     camunda:topic="update_ownership">
-      <bpmn:incoming>Flow_5</bpmn:incoming>
-      <bpmn:outgoing>Flow_6</bpmn:outgoing>
-    </bpmn:serviceTask>
+    <bpmn:scriptTask id="ServiceTask_ConfirmDemand" name="potvrdenie dopytu" scriptFormat="groovy">
+      <bpmn:incoming>Flow_OfferAccepted_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_SellObject</bpmn:outgoing>
+      <bpmn:script/>
+    </bpmn:scriptTask>
 
-    <bpmn:sequenceFlow id="Flow_6" sourceRef="Activity_UpdateOwnership" targetRef="Event_End" />
+    <bpmn:scriptTask id="ServiceTask_SellObject" name="predaj objektu" scriptFormat="groovy">
+      <bpmn:incoming>Flow_SellObject</bpmn:incoming>
+      <bpmn:outgoing>Flow_End_Success</bpmn:outgoing>
+      <bpmn:script/>
+    </bpmn:scriptTask>
 
-    <bpmn:endEvent id="Event_End" name="Demand Completed">
-      <bpmn:incoming>Flow_6</bpmn:incoming>
+    <bpmn:scriptTask id="ServiceTask_CancelDemand" name="zrušenie dopytu" scriptFormat="groovy">
+      <bpmn:incoming>Flow_Available_No</bpmn:incoming>
+      <bpmn:incoming>Flow_OfferAccepted_No</bpmn:incoming>
+      <bpmn:outgoing>Flow_End_Cancel</bpmn:outgoing>
+      <bpmn:script/>
+    </bpmn:scriptTask>
+
+    <bpmn:endEvent id="EndEvent_Success" name="koniec procesu">
+      <bpmn:incoming>Flow_End_Success</bpmn:incoming>
     </bpmn:endEvent>
+    <bpmn:endEvent id="EndEvent_Cancel" name="koniec procesu">
+      <bpmn:incoming>Flow_End_Cancel</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_CheckAvailability" sourceRef="StartEvent_CreateDemand" targetRef="ServiceTask_CheckAvailability"/>
+    <bpmn:sequenceFlow id="Flow_Gateway_Available" sourceRef="ServiceTask_CheckAvailability" targetRef="Gateway_Available"/>
+    <bpmn:sequenceFlow id="Flow_Available_Yes" sourceRef="Gateway_Available" targetRef="ServiceTask_CreateDemand" name="áno">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${isAvailable}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Available_No" sourceRef="Gateway_Available" targetRef="ServiceTask_CancelDemand" name="nie">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${!isAvailable}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_UserTask_Decision" sourceRef="ServiceTask_CreateDemand" targetRef="UserTask_OwnerDecision"/>
+    <bpmn:sequenceFlow id="Flow_Gateway_OfferAccepted" sourceRef="UserTask_OwnerDecision" targetRef="Gateway_OfferAccepted"/>
+    <bpmn:sequenceFlow id="Flow_OfferAccepted_Yes" sourceRef="Gateway_OfferAccepted" targetRef="ServiceTask_ConfirmDemand" name="áno">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${offerAccepted}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_OfferAccepted_No" sourceRef="Gateway_OfferAccepted" targetRef="ServiceTask_CancelDemand" name="nie">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${!offerAccepted}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_SellObject" sourceRef="ServiceTask_ConfirmDemand" targetRef="ServiceTask_SellObject"/>
+    <bpmn:sequenceFlow id="Flow_End_Success" sourceRef="ServiceTask_SellObject" targetRef="EndEvent_Success"/>
+    <bpmn:sequenceFlow id="Flow_End_Cancel" sourceRef="ServiceTask_CancelDemand" targetRef="EndEvent_Cancel"/>
   </bpmn:process>
 
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="galactic_market_demand">
-      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
-        <di:waypoint x="188" y="240" />
-        <di:waypoint x="242" y="240" />
+      <bpmndi:BPMNShape id="StartEvent_CreateDemand_di" bpmnElement="StartEvent_CreateDemand">
+        <dc:Bounds x="100" y="100" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_CheckAvailability_di" bpmnElement="ServiceTask_CheckAvailability">
+        <dc:Bounds x="200" y="90" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Available_di" bpmnElement="Gateway_Available">
+        <dc:Bounds x="350" y="105" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_CreateDemand_di" bpmnElement="ServiceTask_CreateDemand">
+        <dc:Bounds x="450" y="90" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="UserTask_OwnerDecision_di" bpmnElement="UserTask_OwnerDecision">
+        <dc:Bounds x="600" y="90" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_OfferAccepted_di" bpmnElement="Gateway_OfferAccepted">
+        <dc:Bounds x="750" y="105" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_ConfirmDemand_di" bpmnElement="ServiceTask_ConfirmDemand">
+        <dc:Bounds x="850" y="90" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_SellObject_di" bpmnElement="ServiceTask_SellObject">
+        <dc:Bounds x="1000" y="90" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Success_di" bpmnElement="EndEvent_Success">
+        <dc:Bounds x="1150" y="110" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_CancelDemand_di" bpmnElement="ServiceTask_CancelDemand">
+        <dc:Bounds x="600" y="250" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Cancel_di" bpmnElement="EndEvent_Cancel">
+        <dc:Bounds x="750" y="270" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <!-- Edges (lines between elements) -->
+      <bpmndi:BPMNEdge id="Flow_CheckAvailability_di" bpmnElement="Flow_CheckAvailability">
+        <di:waypoint x="136" y="118"/>
+        <di:waypoint x="200" y="130"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
-        <di:waypoint x="342" y="240" />
-        <di:waypoint x="442" y="240" />
+      <bpmndi:BPMNEdge id="Flow_Gateway_Available_di" bpmnElement="Flow_Gateway_Available">
+        <di:waypoint x="300" y="130"/>
+        <di:waypoint x="350" y="130"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
-        <di:waypoint x="542" y="240" />
-        <di:waypoint x="642" y="240" />
+      <bpmndi:BPMNEdge id="Flow_Available_Yes_di" bpmnElement="Flow_Available_Yes">
+        <di:waypoint x="400" y="130"/>
+        <di:waypoint x="450" y="130"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
-        <di:waypoint x="742" y="240" />
-        <di:waypoint x="842" y="240" />
+      <bpmndi:BPMNEdge id="Flow_Available_No_di" bpmnElement="Flow_Available_No">
+        <di:waypoint x="375" y="155"/>
+        <di:waypoint x="650" y="290"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
-        <di:waypoint x="942" y="240" />
-        <di:waypoint x="1042" y="240" />
+      <bpmndi:BPMNEdge id="Flow_UserTask_Decision_di" bpmnElement="Flow_UserTask_Decision">
+        <di:waypoint x="550" y="130"/>
+        <di:waypoint x="600" y="130"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
-        <di:waypoint x="1142" y="240" />
-        <di:waypoint x="1192" y="240" />
+      <bpmndi:BPMNEdge id="Flow_Gateway_OfferAccepted_di" bpmnElement="Flow_Gateway_OfferAccepted">
+        <di:waypoint x="700" y="130"/>
+        <di:waypoint x="750" y="130"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
-        <dc:Bounds x="152" y="222" width="36" height="36" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_ValidateDemand_di" bpmnElement="Activity_ValidateDemand">
-        <dc:Bounds x="242" y="200" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_CheckObjectAvailability_di" bpmnElement="Activity_CheckObjectAvailability">
-        <dc:Bounds x="442" y="200" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_CheckUserBalance_di" bpmnElement="Activity_CheckUserBalance">
-        <dc:Bounds x="642" y="200" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_ConfirmTransaction_di" bpmnElement="Activity_ConfirmTransaction">
-        <dc:Bounds x="842" y="200" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_UpdateOwnership_di" bpmnElement="Activity_UpdateOwnership">
-        <dc:Bounds x="1042" y="200" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_End_di" bpmnElement="Event_End">
-        <dc:Bounds x="1192" y="222" width="36" height="36" />
-      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_OfferAccepted_Yes_di" bpmnElement="Flow_OfferAccepted_Yes">
+        <di:waypoint x="800" y="130"/>
+        <di:waypoint x="850" y="130"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_OfferAccepted_No_di" bpmnElement="Flow_OfferAccepted_No">
+        <di:waypoint x="775" y="155"/>
+        <di:waypoint x="650" y="290"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_SellObject_di" bpmnElement="Flow_SellObject">
+        <di:waypoint x="950" y="130"/>
+        <di:waypoint x="1000" y="130"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_End_Success_di" bpmnElement="Flow_End_Success">
+        <di:waypoint x="1100" y="130"/>
+        <di:waypoint x="1150" y="128"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_End_Cancel_di" bpmnElement="Flow_End_Cancel">
+        <di:waypoint x="700" y="290"/>
+        <di:waypoint x="750" y="288"/>
+      </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
+
 </bpmn:definitions> 
